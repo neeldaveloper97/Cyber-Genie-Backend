@@ -7,8 +7,8 @@ export class PaymentService {
   private wallet: ethers.Wallet;
 
   constructor() {
-    const infuraUrl = 'https://sepolia.infura.io/v3/2308d6ed8a144a628b803fc13913ecc7'; 
-    const walletPrivateKey = '4077b3f3d21b8303342c6528dc7f48b1ce8219044603b9f6cde13ed6d43177b0';
+    const infuraUrl = process.env.infuraUrl;
+    const walletPrivateKey = process.env.walletPrivateKey;
     this.provider = new ethers.JsonRpcProvider(infuraUrl);
     this.wallet = new ethers.Wallet(walletPrivateKey, this.provider);
   }
@@ -19,7 +19,7 @@ export class PaymentService {
 
       const tx = await this.wallet.sendTransaction({
         to: correctedAddress,
-        value: ethers.parseEther('0.1'), 
+        value: ethers.parseEther('0.1'),
       });
 
       await tx.wait();
@@ -33,7 +33,3 @@ export class PaymentService {
     }
   }
 }
-
-
-
-
