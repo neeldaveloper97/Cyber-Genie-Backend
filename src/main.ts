@@ -9,60 +9,66 @@ async function bootstrap() {
   console.log('Microservice is listening');
 }
 
-connect('amqp://localhost', (err, connection) => {
-  if (err) {
-    throw err;
-  }
-
-  connection.createChannel((err, channel) => {
+connect(
+  'amqp://cguser:YiZpmHXKQ8z3Rn93vFhx@165.22.92.187',
+  (err, connection) => {
     if (err) {
       throw err;
     }
 
-    let paymentQueueName = 'payment_queue';
-    let paymentStatusQueueName = 'payment_status_queue';
+    connection.createChannel((err, channel) => {
+      if (err) {
+        throw err;
+      }
 
-    channel.assertQueue(paymentQueueName, {
-      durable: false,
-    });
+      let paymentQueueName = 'payment_queue';
+      let paymentStatusQueueName = 'payment_status_queue';
 
-    console.log(
-      'Waiting for payment requests in %s. To exit, press CTRL+C',
-      paymentQueueName,
-    );
+      channel.assertQueue(paymentQueueName, {
+        durable: false,
+      });
 
-    channel.consume(paymentQueueName, async (msg) => {
-      const walletAddress = msg.content.toString();
       console.log(
-        'Received payment request for wallet address:',
-        walletAddress,
+        'Waiting for payment requests in %s. To exit, press CTRL+C',
+        paymentQueueName,
       );
 
-      try {
-        const paymentService = new PaymentService();
-        const balance = await paymentService.processPayment(walletAddress);
-
-        console.log('Payment processed successfully. Wallet balance:', balance);
-
-        channel.assertQueue(paymentStatusQueueName, {
-          durable: false,
-        });
-        channel.sendToQueue(
-          paymentStatusQueueName,
-          Buffer.from('Payment processed successfully'),
+      channel.consume(paymentQueueName, async (msg) => {
+        const walletAddress = msg.content.toString();
+        console.log(
+          'Received payment request for wallet address:',
+          walletAddress,
         );
-      } catch (error) {
-        console.error('Error processing payment:', error.message);
-        channel.assertQueue(paymentStatusQueueName, {
-          durable: false,
-        });
-        channel.sendToQueue(
-          paymentStatusQueueName,
-          Buffer.from(`Error processing payment: ${error.message}`),
-        );
-      }
+
+        try {
+          const paymentService = new PaymentService();
+          const balance = await paymentService.processPayment(walletAddress);
+
+          console.log(
+            'Payment processed successfully. Wallet balance:',
+            balance,
+          );
+
+          channel.assertQueue(paymentStatusQueueName, {
+            durable: false,
+          });
+          channel.sendToQueue(
+            paymentStatusQueueName,
+            Buffer.from('Payment processed successfully'),
+          );
+        } catch (error) {
+          console.error('Error processing payment:', error.message);
+          channel.assertQueue(paymentStatusQueueName, {
+            durable: false,
+          });
+          channel.sendToQueue(
+            paymentStatusQueueName,
+            Buffer.from(`Error processing payment: ${error.message}`),
+          );
+        }
+      });
     });
-  });
 
-  bootstrap();
-});
+    bootstrap();
+  },
+);
